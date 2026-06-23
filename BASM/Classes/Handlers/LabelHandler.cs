@@ -1,4 +1,5 @@
 ﻿using BASM.Classes.DS;
+using BASM.Classes.Managers;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -12,6 +13,8 @@ namespace BASM.Classes.Handlers {
         static Queue<DerefferedLabel> derefferedLabels = new Queue<DerefferedLabel>();
         static Stack<string> labelStack = new Stack<string>();
         static string cLabel = "", _clabel = "";
+
+        static byte NASM => OpCodeManager.NASM;
         public static void AddLabel(string label, long IP) {
             if (label.Length == 0) return;
             if (labels.TryGetValue(label, out var key)) return;
@@ -49,7 +52,20 @@ namespace BASM.Classes.Handlers {
             imm = new DS.LABEL();
             if (!isLabelValid(lbl)) return false;
             var src = lbl;
-            if (lbl.StartsWith('.')) src = cLabel + lbl;
+            if (lbl.StartsWith('.')) {
+                if ((NASM & 1) > 0) src = cLabel + lbl;
+                else {
+                    int len = lbl.Length;
+                    int i = 0;
+                    for (; i < len; i++) if (lbl[i] != '.') break;
+
+                    var _stack = labelStack.ToArray();
+                    len = _stack.Length;
+                    if (len - i -1>= 0) {
+                        src = _stack[len - i - 1] + "." + lbl.Substring(i);
+                    }
+                }
+            }
             imm.keyw = keyw;
             imm.label = src;
             imm.unsolved = 1;

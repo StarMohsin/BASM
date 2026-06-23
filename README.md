@@ -15,7 +15,7 @@ In BASM above code can simply be written as
 L1: {
   L2:  {
     L3: {
-      jmp .L3
+      jmp ..L3 ; jumps to L1.L2.L3, '..' represent scope 1 level up aka L2 scope, '.' represents current scope
     }
   }
 }
@@ -23,7 +23,8 @@ L1: {
 ## Notice
 That's just key idea, for any one who wants to create a custom Assembler, for any type of cpu, this also works as best blue print
 
-### Some key details
+### Some key features
+The code also has a flag to switch between NASM and BASM
 This assembler is strict when parsing memory operations
 ```
 mov ax,[es:bx+0x100]

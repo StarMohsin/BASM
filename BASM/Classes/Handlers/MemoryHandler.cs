@@ -332,7 +332,7 @@ namespace BASM.Classes.Handlers {
                 v = 0;
                 if (MemoryHandler.TryParse(lbl, out v)) return true;
                 if (RegistersHandler.TryParse(lbl, out var reg)) return false;
-                if (LabelHandler.TryGetValue(lbl, out var imm)) {
+                if (LabelHandler.TryGetValue(lbl, out LABEL imm)) {
                     v = imm.imme;
                     return true;
                 }

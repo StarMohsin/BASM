@@ -17,6 +17,7 @@ namespace BASM.Classes.Managers {
         static Dictionary<string, OPCODE> opcodes = new Dictionary<string, OPCODE>(); 
         static MemoryHandler memHandler = new MemoryHandler();
 
+        public static byte NASM = 0x1; // flags to follow nasm syntax
         static byte[] ToBytes(long n,byte bits = 16, byte w = 0) {
             List<byte> bytes = new();
             long b = n;
@@ -37,7 +38,11 @@ namespace BASM.Classes.Managers {
         }
         public static void Load() {
             long gid = 0;
-            File.ReadAllLines(opcodeFile).ToList().ForEach(line => {
+
+            var file = opcodeFile;
+            if (!File.Exists(file)) file = "../../../Resources/" + opcodeFile;
+
+            File.ReadAllLines(file).ToList().ForEach(line => {
                 if (line.StartsWith(';')) return;
                 var parts = line.Split(new char[] { ' ', '\t' }, StringSplitOptions.RemoveEmptyEntries);
                 if (line.StartsWith('#')) {
@@ -301,6 +306,7 @@ namespace BASM.Classes.Managers {
                     rmmField = false;
                     break;
                 default:
+                ///LEGACY
                 case OPCODE.DEF_ID: { 
                         if (rm == 0 && code.ALU && code.typeId == OPCODE.XCHG_ID && w == 1) { // ax with alu
                             opcode = code.codes[3] + reg;
@@ -574,7 +580,9 @@ namespace BASM.Classes.Managers {
                 var ip = (IP + align - 1) & ~(align - 1);
                 var relIP = ip - IP;
                 IP = ip;
-                return new byte[relIP];
+                var bytes2 = new byte[relIP];
+                for (int i = 0; i < relIP; i++) bytes2[i] = 0x90;
+                return bytes2;
             } else if (
                 opcodeStr.StartsWith("db") ||
                 opcodeStr.StartsWith("dw") ||

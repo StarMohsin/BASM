@@ -69,7 +69,7 @@ namespace BASM.Classes.Handlers {
                     }
                 } else if (MemoryHandler.TryParseIMM(arg, out var imm)) {
                     bytes.AddRange(ToBytes(imm.imme));
-                } else if(LabelHandler.TryGetValue(arg,out var lbl)){
+                } else if(LabelHandler.TryGetValue(arg,out LABEL lbl)){
                     bytes.AddRange(ToBytes(lbl.imme));
                 } else {
                     Console.WriteLine(EqParser.Parse(arg) +"");// bytes.AddRange(ToBytes());
@@ -90,7 +90,7 @@ namespace BASM.Classes.Handlers {
                 v = 0;
                 if (MemoryHandler.TryParse(lbl, out v)) return true;
                 if (RegistersHandler.TryParse(lbl, out var reg)) return false;
-                if (LabelHandler.TryGetValue(lbl, out var imm)) {
+                if (LabelHandler.TryGetValue(lbl, out LABEL  imm)) {
                     v = imm.imme;
                     return true;
                 }
