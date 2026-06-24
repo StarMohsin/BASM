@@ -2,7 +2,7 @@
 A custom ASM language with scoped labels, the syntax follows simple NASM
 
 ## NASM Syntax
-```
+```asm
 L1:
   L1.L2:
   L1.L2.L3:
@@ -11,7 +11,7 @@ L1:
 
 ## BASM Syntax
 In BASM above code can simply be written as
-```
+```asm
 L1: {
   L2:  {
     L3: {
@@ -26,11 +26,11 @@ That's just key idea, for any one who wants to create a custom Assembler, for an
 ### Some key features
 The code also has a flag to switch between NASM and BASM
 This assembler is strict when parsing memory operations
-```
+```asm
 mov ax,[es:bx+0x100]
 ```
 can only be written this way, and not like this
-```
+```asm
 mov ax, es:[bx+0x100] ; or
 mov ax, es:[bx] +0x100 ; or this
 ```
