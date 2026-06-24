@@ -23,6 +23,8 @@ L1: {
 ## Notice
 That's just key idea, for any one who wants to create a custom Assembler, for any type of cpu, this also works as best blue print
 
+So apparently I was writing a NTFS File Parser in NASM for my custom OS, and I took object oriented approach, but because NASM uses single scoped labels, I ran into many problems, the code became unreadable, I was able to able to write the parse code, but yet I also needed the disk driver code, thinking of the complexities I might face again, I just wrote an assembler in my free time which is also available on github as template for anyone who want's to understand how a assembler works, or if anyone wants to create their own custom assemblers for their custom CPU designs.
+
 ### Some key features
 The code also has a flag to switch between NASM and BASM
 This assembler is strict when parsing memory operations
