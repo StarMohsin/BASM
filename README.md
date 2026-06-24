@@ -29,7 +29,7 @@ So apparently I was writing a NTFS File Parser in NASM for my custom OS, and I t
 The code also has a flag to switch between NASM and BASM
 This assembler is strict when parsing memory operations
 ```asm
-mov ax,[es:bx+0x100]
+mov ax, [es:bx+0x100]
 ```
 can only be written this way, and not like this
 ```asm
