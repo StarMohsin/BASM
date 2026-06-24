@@ -40,3 +40,6 @@ mov ax, es:[bx+0x100] ; or
 mov ax, es:[bx] +0x100 ; or this
 ```
 because this assemblers considers anything inside '[' ']' a memory access operation, It just to keep it simple.
+
+This assembler is focused on creating Flat Bin files
+I'm also thinking of add include a file feature like #include<File.asm> like c++, but with file inlined with currrent code
