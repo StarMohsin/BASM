@@ -15,7 +15,10 @@ In BASM above code can simply be written as
 L1: {
   L2:  {
     L3: {
-      jmp ..L3 ; jumps to L1.L2.L3, '..' represent scope 1 level up aka L2 scope, '.' represents current scope
+      L4:
+      jmp .L4 ;    jumps to L1.L2.L3,   '.'   represent current scope aka L3 scope
+      jmp ..L3 ;   jumps to L1.L2.L3,   '..'  represent scope 1 level up aka L2 scope
+      jmp ...L2 ;  jumps to L1.L2,      '...' represent scope 2 level up aka L3 scope
     }
   }
 }
