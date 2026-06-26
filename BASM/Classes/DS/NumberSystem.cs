@@ -73,5 +73,15 @@ namespace BASM.Classes.DS {
                 return false;
             }
         }
+
+        public static byte[] ToByteArray(ulong n) {
+            var Queue = new Queue<byte>();
+            while (n > 0) {
+                Queue.Enqueue((byte)(n & 0xFF));
+                n >>= 8;
+            }
+            return Queue.ToArray();
+        }
+        public static byte[] ToByteArray(long n) => ToByteArray((ulong)n);
     }
 }

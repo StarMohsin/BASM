@@ -14,7 +14,7 @@
 ;		0x0				Default
 ;		0x1				ALU INST or MOV INST
 ;		0x2				PUSH/POP
-;	DEF		= default hex opcode [6 B,D 1b,W 1b] , where B=bytes, b=bits
+;	DEF		= default hex opcode [6_B,D_1b,W_1b] , where B=bytes, b=bits
 ;------------------------------------------------------------------------
 ;	Zero operand group Flag 0x0	
 ;	here FLAG value 0x10 defines prefix (flags & 0x10) && ZOP => PREFIX

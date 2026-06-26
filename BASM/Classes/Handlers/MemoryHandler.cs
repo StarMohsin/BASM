@@ -97,14 +97,8 @@ namespace BASM.Classes.Handlers {
                     return false;
                 } 
             } 
-
-            ulong _size = (ulong)imm.imme;
-            if (_size <= 0xFF) _size = 1;
-            else if (_size <= 0xFFFF) _size = 2;
-            else if (_size <= 0xFFFFFFFF) _size = 4;
-            else if (_size <= 0xFFFFFFFFFFFFFFFF) _size = 8;
-            else _size = 8;
-            imm.size = (byte)_size;
+             
+            imm.size = getSize(imm.imme);
             return true;
         }
         public static IMM ParseIMM(string src) {
@@ -120,7 +114,15 @@ namespace BASM.Classes.Handlers {
             n = 0;
             return false;
         }
-
+        public static byte getSize(ulong _size) { 
+            if (_size <= 0xFF) _size = 1;
+            else if (_size <= 0xFFFF) _size = 2;
+            else if (_size <= 0xFFFFFFFF) _size = 4;
+            else if (_size <= 0xFFFFFFFFFFFFFFFF) _size = 8;
+            else _size = 8;
+            return (byte)_size;
+        }
+        public static byte getSize(long _size) => getSize((ulong)Math.Abs(_size));
         private byte getRM(int reg) {
             return reg switch {
                 6 => 0, // si

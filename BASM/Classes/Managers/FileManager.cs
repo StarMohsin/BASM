@@ -17,7 +17,7 @@ namespace BASM.Classes.Managers {
 
             src = sfile.OpenRead();
             if (!ofile.Exists) ofile.Create();
-            dst = ofile.Open(FileMode.Truncate,FileAccess.Write);
+            dst = ofile.Open(FileMode.Truncate,FileAccess.ReadWrite);
         }
         public static void Close() {
             if (src != null) src.Close();

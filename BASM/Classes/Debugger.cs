@@ -215,15 +215,35 @@ namespace BASM.Classes {
                 logS.Flush();
             }
         }
-        public static void info(string message, params string[] args) => WriteColored(() => WriteLine(message, args), ConsoleColor.Cyan); 
-        public static void Info(string message, int type = 0, params string[] args) => write(ConsoleColor.Cyan, message, () => WriteLine(message, args), type + 0x10);
-        public static void InfoT(string message, int type = 0, params string[] args) => write(ConsoleColor.Cyan, message, () => Write(message, args), type + 0x10);
-        public static void Log(string message, int type = 0, params string[] args) => write(ConsoleColor.Green, message, () => WriteLine(message, args), type + 0x00);
-        public static void LogT(string message, int type = 0, params string[] args) => write(ConsoleColor.Green, message, () => Write(message, args), type + 0x00);
-        public static void Warn(string message, int type = 0, params string[] args) => write(ConsoleColor.Yellow, message, () => WriteLine(message, args), type + 0x20);
-        public static void WarnT(string message, int type = 0, params string[] args) => write(ConsoleColor.Yellow, message, () => Write(message, args), type + 0x20);
-        public static DialogResult Error(string message, int type = 0, params string[] args) => error(message, () => WriteLine(message, args), type);
-        public static DialogResult ErrorT(string message, int type = 0, params string[] args) => error(message, () => Write(message, args), type);
+
+        // log overloads
+        private const int
+            LOG_TYPE = 0,
+            INFO_TYPE = 0,
+            WARN_TYPE = 0,
+            ERROR_TYPE = 0;
+        private static void _log(string message, int type = 0, params string[] args) => write(ConsoleColor.Green, message, () => Write(message, args), type + LOG_TYPE);
+        public static void log(string message, int type = 0, params string[] args) => _log(message  , type, args);
+        public static void log(string message, params string[] args) => _log(message    , 0, args); 
+        public static void Log(string message, int type = 0, params string[] args)  => _log(message + "\r\n", type, args); 
+        public static void Log(string message = "", params string[] args)                => _log(message + "\r\n", 0, args); 
+        // info overloads
+        private static void _info(string message, int type = 0, params string[] args) => write(ConsoleColor.Cyan, message, () => Write(message, args), type + INFO_TYPE);
+        public static void info(string message, int type = 0, params string[] args) => _info(message , type, args);
+        public static void info(string message, params string[] args) => _info(message  , 0, args);
+        public static void Info(string message, int type = 0, params string[] args) => _info(message + "\r\n", type,args);
+        public static void Info(string message = "", params string[] args)               => _info(message + "\r\n", 0, args);
+
+        // warn overloads
+        private static void _warn(string message, int type = 0, params string[] args) => write(ConsoleColor.Yellow, message, () => Write(message, args), type + WARN_TYPE);
+        public static void warn(string message, int type = 0, params string[] args) => _warn(message  , type, args);
+        public static void warn(string message, params string[] args) => _warn(message, 0, args);
+        public static void Warn(string message, int type = 0, params string[] args) => _warn(message + "\r\n", type, args);
+        public static void Warn(string message = "", params string[] args)               => _warn(message + "\r\n", 0, args);
+
+        // error overloads
+        public static DialogResult Error(string message, int type = 0, params string[] args) => error(message, () => Write(message, args), type+ ERROR_TYPE);
+        public static DialogResult ErrorT(string message, int type = 0, params string[] args) => error(message, () => Write(message, args), type + ERROR_TYPE);
         private static DialogResult error(string message, Action Write, int type = 0, params string[] args) =>
                 write(ConsoleColor.Red, message, Write, type + 0x30);
         private static DialogResult write(ConsoleColor color, string message, Action Write, int type = 0) {

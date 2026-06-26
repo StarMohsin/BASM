@@ -3,6 +3,7 @@ using BASM.Classes.Managers;
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Security.Cryptography.X509Certificates;
 using System.Text;
 using System.Threading.Tasks;
 
@@ -84,7 +85,7 @@ namespace BASM.Classes.Handlers {
             }
             return bytes.ToArray();
         }
-
+        static DerefferedLabel drlbl => OpCodeManager.drlbl;
         public static Expression ParseEq(string eq) =>
             EqParser.Parse(eq, (string lbl, out long v) => {
                 v = 0;
@@ -94,11 +95,7 @@ namespace BASM.Classes.Handlers {
                     v = imm.imme;
                     return true;
                 }
-                var dr = new DerefferedLabel();
-                dr.label = eq;
-                dr.ORG = OpCodeManager.ORG;
-                dr.IP = OpCodeManager.IP;
-                LabelHandler.AddDereferredLabel(dr);
+                drlbl.state |= 1;
                 return false;
             }).FoldConstants();
     }

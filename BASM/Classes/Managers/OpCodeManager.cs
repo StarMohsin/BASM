@@ -13,8 +13,7 @@ namespace BASM.Classes.Managers {
     public class OpCodeManager { 
         static byte BITS = 16;
         static string opcodeFile = "opcodes.asm";
-
-        static Dictionary<string, OPCODE> opcodes = new Dictionary<string, OPCODE>(); 
+ 
         static MemoryHandler memHandler = new MemoryHandler();
 
         public static byte NASM = 0x1; // flags to follow nasm syntax
@@ -35,30 +34,6 @@ namespace BASM.Classes.Managers {
                 }
             }
             return bytes.ToArray();
-        }
-        public static void Load() {
-            long gid = 0;
-
-            var file = opcodeFile;
-            if (!File.Exists(file)) file = "../../../Resources/" + opcodeFile;
-
-            File.ReadAllLines(file).ToList().ForEach(line => {
-                if (line.StartsWith(';')) return;
-                var parts = line.Split(new char[] { ' ', '\t' }, StringSplitOptions.RemoveEmptyEntries);
-                if (line.StartsWith('#')) {
-                    if (line.StartsWith("#GID")) {
-                        gid = MemoryHandler.ParseIMM(parts[1]).imme;
-                    }
-                    return;
-                }
-                if (parts.Length < 3) return; // skip invalid lines
-                var opcode = new OPCODE();
-                opcode.name = parts[0].ToLower();
-                opcode.typeId = gid; //Convert.ToInt64(parts[1], 16);
-                opcode.flags = Convert.ToInt64(parts[2], 16);
-                opcode.codes = parts.Skip(3).Select(p => Convert.ToInt64(p, 16)).ToArray();  
-                opcodes[parts[0].ToLower()] = opcode;
-            }); 
         }
         public static ARG ParseOperand(string src, byte keyw = 0) {
             if (src.Length == 0) return new ARG();
@@ -83,7 +58,7 @@ namespace BASM.Classes.Managers {
             ws.RemoveAt(0);
             var opcodeStr = ws[0];
 
-            if (!opcodes.TryGetValue(opcodeStr, out var _code)) {
+            if (!OpCodeHandler.TryGet(opcodeStr,out var _code)) {
                 Console.WriteLine($"Unknown opcode: {opcodeStr} '{ws[1]}' '{ws[2]}'");
                 throw new InvalidOperationException($"Unknown opcode: {opcodeStr}");
             }
@@ -91,24 +66,11 @@ namespace BASM.Classes.Managers {
         }
 
         public static long IP = 0,ORG = 0;
-        public static byte[] Parse(OPCODE code, string[] words) {
+
+        public static byte[] Parse(OPCODE code,ARG dst,ARG src) {
+
+
             byte bits = BITS;
-
-            if (code.PREF) return ParsePREF(code,words);
-            if (code.ZOP) return [(byte)code.codes[0]];
-            var dstStr = words[1];
-            var srcStr = words[2];
-            Console.WriteLine($"\tParsed line: opcode='{words[0]}', dst='{words[1]}', src='{words[2]}'");
-
-            var dst = ParseOperand(dstStr);
-            var src = ParseOperand(srcStr);
-
-            if (dst.isMem && src.isMem) {
-                Console.WriteLine($"Invalid operands: both dst and src cannot be memory references.");
-                throw new InvalidOperationException($"Invalid operands: both dst and src cannot be memory references.");
-            }
-
-
             int maxSize = 0;
             if (dst.isReg && dst.size > maxSize) maxSize = dst.size;
             if (src.isReg && src.size > maxSize) maxSize = src.size;
@@ -119,7 +81,8 @@ namespace BASM.Classes.Managers {
             byte d = 1; // 1 = to reg field
             bool oop = false;
             //Debugger.Info($"\tBefore swap {dst.type} {src.type}");
-            if (dstStr.Length > 0 && src.isReg) {
+            //if (dstStr.Length > 0 && src.isReg) {
+            if (src.isReg) {
                 d = 0;
                 (src, dst) = (dst, src);
             }
@@ -135,37 +98,28 @@ namespace BASM.Classes.Managers {
             if (Rm.isSizeKeyW) {
                 if (Rm.isByte) w = 0;
                 else if (Rm.isWord) w = 1;
-                else if (Rm.isDWord) { w = 1; Rm.usec |= 4; } 
-                else if (Rm.isQWord) { w = 1; Rm.usec |= 4; }
-            } 
+                else if (Rm.isDWord) { w = 1; Rm.usec |= 4; } else if (Rm.isQWord) { w = 1; Rm.usec |= 4; }
+            }
 
-            DerefferedLabel[] drlbls = [new(), new()];
-
-            byte whoLabel = 0;
+             
             if (!Reg.isSolved) {
-                var lbl = drlbls[0].label = Reg.label;
-                if (MemoryHandler.StartsWithImmKeyWord(lbl, out var k, out var i)) drlbls[0].label = lbl.Substring(i, lbl.Length - i);
-                //Debugger.Log("Found label " + lbl);
-                whoLabel |= 1;
-            }
+                drlbl.state |= 1;
+                drlbl.labels.Enqueue(Reg.label);
+            } 
             if (!Rm.isSolved) {
-                var lbl = drlbls[1].label = Rm.label;
-                if (MemoryHandler.StartsWithImmKeyWord(lbl, out var k, out var i)) drlbls[1].label = lbl.Substring(i, lbl.Length - i);
-                //Debugger.Log("Found label " + lbl);
-                whoLabel |= 2;
-                
+                drlbl.state |= 1;
+                drlbl.labels.Enqueue(Rm.label);
             }
-
             //Debugger.Info($"\tAfter swap {Reg.type} {Rm.type}");
 
-            int reg = oop ? -1 : Reg.value;
-            int rm = Rm.value;
-            int mod = Rm.mod;
+            byte reg = (byte)(oop ? -1 : Reg.value);
+            byte rm = Rm.value;
+            byte mod = Rm.mod;
 
             bool immField = false;
             bool relImm = true;
             string dis = "";
-            if (src.type == IMM.Type || src.type == LABEL.Type) { 
+            if (src.type == IMM.Type || src.type == LABEL.Type) {
                 immField = true;
                 var imm = ((IMM)(src)).imme;
                 dis = $"imme: 0x{imm:X}";
@@ -183,12 +137,12 @@ namespace BASM.Classes.Managers {
                 case OPCODE.MOV_ID:
                     opcode = code.codes[0];
                     if (immField) {
-                        if(mod == 3) {
+                        if (mod == 3) {
                             opcode = code.codes[1];
                             opcode <<= 1; opcode += w;
                             opcode <<= 3; opcode += rm;
-                            rmmField = false; 
-                        }else {
+                            rmmField = false;
+                        } else {
                             //MEM MOV 
                             opcode = code.codes[2] + w;
                             rmmField = true;
@@ -198,18 +152,18 @@ namespace BASM.Classes.Managers {
                         opcode += ((d << 1) + w);
                         opcodeBranch = 8;
                         //SEG MOV
-                        if ((Reg.usec & 1) > 0) opcode = code.codes[3] + (d << 1); 
+                        if ((Reg.usec & 1) > 0) opcode = code.codes[3] + (d << 1);
                     }
                     break;
 
                 case OPCODE.XCHG_ID:
-                    opcode = code.codes[0]; 
+                    opcode = code.codes[0];
                     if (rm == 0 && w == 1) { // ax with xchg
-                        opcode = code.codes[3] + reg; 
+                        opcode = code.codes[3] + reg;
                         rmmField = false;
                     }
                     break;
-                case OPCODE.ADD_ID: 
+                case OPCODE.ADD_ID:
                     if (immField) {
                         if (rm == 0) { // ax with alu
                             opcode = code.codes[3];
@@ -217,18 +171,18 @@ namespace BASM.Classes.Managers {
                             rmmField = false;
                         } else {
                             opcode = code.codes[1];
-                            reg = (int)code.codes[2];
+                            reg = (byte)code.codes[2];
                         }
-                    } else { 
+                    } else {
                         opcode = code.codes[0];
                         opcode += ((d << 1) + w);
                     }
                     break;
                 case OPCODE.PUSH_ID:
                     w = 1;
-                    if ((src.usec & 1)>0) {
+                    if ((src.usec & 1) > 0) {
                         opcode = code.codes[3 + rm];
-                        Debugger.Warn($"\tUsing segment register {rm} in ALU instruction: {srcStr} as {opcode}");
+                        //Debugger.Warn($"\tUsing segment register {rm} in ALU instruction: {srcStr} as {opcode}");
                         opcodeBranch = 41;
                     } else if (immField) {
                         opcode = code.codes[1];
@@ -241,38 +195,45 @@ namespace BASM.Classes.Managers {
                     rmmField = false;
                     break;
                 case OPCODE.CALL_ID: {
-                        if (Reg.keyw == 2) code = parse("callf");
-                        if (Rm .keyw == 2) code = parse("callf");
-
-                        drlbls[0].opcode = drlbls[1].opcode = 1;
-                        drlbls[0].size = drlbls[1].size = 1<<w;
+                        if (Reg.keyw == 2) code = OpCodeHandler.parse("callf");
+                        if (Rm.keyw == 2) code = OpCodeHandler.parse("callf");
+                         
+                        drlbl.Rel = true; 
                         w = 1;
                         if (immField) {
                             opcode = code.codes[1];
                             rmmField = false;
+                            if (Reg.keyw == 0) Reg.imme -= (drlbl.IP + 2 + w);
                         } else {
                             opcode = code.codes[0];
-                            reg = (int)code.codes[2];
+                            reg = (byte)code.codes[2];
                         }
                     }
                     break;
                 case OPCODE.JMP_ID: {
-                        if (Reg.keyw == 2) code = parse("jmpf");
-                        if (Rm .keyw == 2) code = parse("jmpf");
+                        if (Reg.keyw == 2) code = OpCodeHandler.parse("jmpf");
+                        if (Rm.keyw == 2) code = OpCodeHandler.parse("jmpf");
 
                         if (immField) {
 
                             opcode = code.codes[1];
                             rmmField = false;
-                            if(Rm.keyw == 0)
-                                drlbls[0].opcode = drlbls[1].opcode = 1;
+                            if (Rm.keyw == 0) {
+                                drlbl.Rel = true;
+                            }
                             if ((opcode & 1) == 0) {
                                 w = 1;
                                 relImm = false;
-                            } else if (Reg.size > 1) {
-                                w = 1;
-                                opcode = code.codes[3];
-                                drlbls[0].size = drlbls[1].size = 2;
+                            } else {
+                                if (Reg.keyw == 0) {
+                                    Reg.imme -= (drlbl.IP + 2);
+                                    if (MemoryHandler.getSize(Reg.imme) > 1) {
+                                        w = 1;
+                                        Reg.imme -= w;
+                                        opcode = code.codes[3];
+                                    }
+                                }
+                                
                             }
 
                             if ((opcode & 1) > 0) {
@@ -280,89 +241,66 @@ namespace BASM.Classes.Managers {
                             } // else jmpf
                         } else {
                             opcode = code.codes[0];
-                            reg = (int)code.codes[2];
+                            reg = (byte)code.codes[2];
                         }
                     }
                     break;
                 case OPCODE.INC_ID:
-                    opcode = code.codes[0]+w;
+                    opcode = code.codes[0] + w;
                     if (immField) throw new("Immediate not allowed for this operation");
-                    reg = (int)code.codes[2];
+                    reg = (byte)code.codes[2];
                     break;
                 case OPCODE.ROL_ID:
                     opcode = code.codes[0];
                     if (immField) opcode = code.codes[1];
-                    reg = (int)code.codes[2];
+                    reg = (byte)code.codes[2];
                     break;
                 case OPCODE.IO_ID:
                     opcode = code.codes[0];
                     if (immField) opcode = code.codes[1];
                     opcode += w;
                     break;
-                case OPCODE.INT_ID:
                 case OPCODE.JC_ID:
-                    drlbls[0].opcode = drlbls[1].opcode = 1;
+                    w = 0;
+                    if (Reg.keyw == 0) {
+                        var relIp = LABEL.relIP(drlbl.IP, Reg.imme, 2);
+                        if (MemoryHandler.getSize(relIp) > 1) {
+                             relIp = LABEL.relIP(drlbl.IP, Reg.imme-1, 2);
+                            var bytes = new List<byte>() { 
+                                (byte)(code.codes[1]+1),
+                                3,
+                                (byte)OpCodeHandler.parse("jmp").codes[3] };
+                            bytes.AddRange(NumberSystem.ToByteArray(relIp));
+                            return bytes.ToArray();
+                        }
+                        Reg.imme = relIp;
+                    }
+                    drlbl.Rel = true;
+                    opcode = code.codes[1];
+                    rmmField = false;
+                    break;
+                case OPCODE.INT_ID:
+                    drlbl.Rel = true;
                     opcode = code.codes[1];
                     rmmField = false;
                     break;
                 default:
                 ///LEGACY
-                case OPCODE.DEF_ID: { 
-                        if (rm == 0 && code.ALU && code.typeId == OPCODE.XCHG_ID && w == 1) { // ax with alu
-                            opcode = code.codes[3] + reg;
-                            opcodeBranch = 1;
-                            rmmField = false;
-                        } else if (rm == 0 && code.ALU && immField) { // ax with alu
-                            opcode = code.codes[3];
-                            opcode += w;
-                            opcodeBranch = 1;
-                            rmmField = false;
-                        } else if (code.ALU && code.ZOP) {
-                            opcode = code.codes[0];
-                            opcode <<= 1; opcode += w;
-                            opcode <<= 3; opcode += code.codes[2];
-                            opcodeBranch = 2;
-                            rmmField = false;
-                        } else if (code.ALU && code.OOP) { // one operand
-                            opcode = code.codes[0];
-                            if (immField) opcode = code.codes[1];
-                            reg = (int)code.codes[2];
-                            opcode += w;
-                            opcodeBranch = 3;
-                        } else if (code.CU && code.OOP) { // one operand control inst, push es
-                            if (src.usec == 1) {
-                                opcode = code.codes[3 + rm];
-                                Debugger.Warn($"\tUsing segment register {rm} in ALU instruction: {srcStr} as {opcode}");
-                                opcodeBranch = 41;
-                            } else if (rm == -1) {
-                                opcode = code.codes[1];
-                                opcodeBranch = 42;
-                            } else {
-                                opcode = code.codes[0];
-                                opcode += rm;
-                                opcodeBranch = 43;
-                            }
-                            rmmField = false;
-                        } else if (code.OOP) { // one operand
-                            opcode = code.codes[0];
-                            if (immField) opcode = code.codes[1];
-                            else reg = (int)code.codes[2];
-                            opcodeBranch = 5;
-                        } else if (immField) {  // mov imme
-                            opcode = code.codes[1];
-                            opcode <<= 1; opcode += w;
-                            opcode <<= 3; opcode += rm;
-                            opcodeBranch = 6;
-                            rmmField = false;
-                        } else if (code.ZOP) { // zero operand
-                            opcode = code.codes[0];
-                            opcodeBranch = 7;
-                        } else { // alu with reg/mem 
-                            opcode = code.codes[0];
-                            opcode += ((d << 1) + w);
-                            opcodeBranch = 8;
-                        }
-                    }
+                case OPCODE.DEF_ID:
+                    OpCodeHandler.ParseLegacyGID(
+                        src,
+                        dst,
+                        code,
+                        ref opcode,
+                        ref d,
+                        ref w,
+                        ref mod,
+                        ref rm,
+                        ref reg,
+                        ref opcodeBranch,
+                        ref rmmField,
+                        ref immField
+                    );
                     break;
             }
 
@@ -390,19 +328,14 @@ namespace BASM.Classes.Managers {
                 foreach (var p in inst) sb.Append($"{p:X} ");
 
                 pref = sb.ToString();
-            } 
+            }
             Debugger.Warn($"\tRead opcode: {code.name} as {opcode:X} from branch {opcodeBranch}");
-            inst.Add((byte)opcode);
+            inst.AddRange(NumberSystem.ToByteArray((ulong)opcode)); 
 
-            drlbls[0].ORG = drlbls[1].ORG = ORG;
-            drlbls[0].IP = drlbls[1].IP = IP;
-
-            if ((code.typeId == OPCODE.JMP_ID||
+            if ((code.typeId == OPCODE.JMP_ID ||
                 code.typeId == OPCODE.JC_ID ||
                 code.typeId == OPCODE.CALL_ID) && relImm) {
-                if (Reg.keyw == 0) {
-                    Reg.imme -= (drlbls[0].IP + 2 + w);
-                } 
+                
             }
             if (rmmField) {
 
@@ -412,11 +345,10 @@ namespace BASM.Classes.Managers {
                 inst.Add((byte)rmm);
             }
 
-            if ((Rm.usec & 2)!=0 && rm == 4) inst.Add(Rm.sib);
+            if ((Rm.usec & 2) != 0 && rm == 4) inst.Add(Rm.sib);
+             
 
-            drlbls[0].Off = drlbls[1].Off = inst.Count;
-            
-            if (rmmField) {  
+            if (rmmField) {
                 if (mod != 3 && mod != 0) {
                     var imm = Rm.imme;
                     inst.AddRange(ToBytes(imm, x67, (byte)((mod == 2) ? 1 : 0)));
@@ -424,9 +356,8 @@ namespace BASM.Classes.Managers {
                     var imm = Rm.imme;
                     inst.AddRange(ToBytes(imm, x67, 1));
                 }
-            }
-            drlbls[0].Off = inst.Count;
-            if (immField) { 
+            } 
+            if (immField) {
 
                 if (Reg is IMM imm) {
                     var v = imm.imme;
@@ -437,18 +368,31 @@ namespace BASM.Classes.Managers {
                         inst.AddRange(ToBytes(v, x66, w));
                     }
                 }
-            }  
+            }
 
 
             var l = $"{pref}opcode:{opcode} d:{d} w:{w} mod:{mod} reg:{reg} rm:{rm} {dis}";
             Debugger.Log($"\tParsed instruction: {l}");
-
-            drlbls[0].instSize = drlbls[1].instSize = inst.Count;
-            if ((whoLabel & 1) != 0) LabelHandler.AddDereferredLabel(drlbls[0]);
-            if ((whoLabel & 2) != 0) LabelHandler.AddDereferredLabel(drlbls[1]);
-            return inst.ToArray();
+             
+            return [.. inst];
         }
+        public static byte[] Parse(OPCODE code, string[] words) {
 
+            if (code.PREF) return ParsePREF(code,words);
+            if (code.ZOP) return [(byte)code.codes[0]];
+            var dstStr = words[1];
+            var srcStr = words[2];
+            Console.WriteLine($"\tParsed line: opcode='{words[0]}', dst='{words[1]}', src='{words[2]}'");
+
+            _dst = ParseOperand(dstStr);
+            _src = ParseOperand(srcStr);
+
+            if (_dst.isMem && _src.isMem) {
+                Console.WriteLine($"Invalid operands: both dst and src cannot be memory references.");
+                throw new InvalidOperationException($"Invalid operands: both dst and src cannot be memory references.");
+            }
+            return Parse(code, _dst, _src);
+        }
         public static string[] Split(string line) {
             var sb = new StringBuilder();
             string opcode = "";
@@ -527,13 +471,15 @@ namespace BASM.Classes.Managers {
             for (; i < len; i++) if (line[i] != ' ') break;
             return new string[] { "LABEL", lbl, (i < len && line[i] == '{') ? "{" : dst };
         }
-        static OPCODE parse(string opcodeStr) {
-            if (!opcodes.TryGetValue(opcodeStr, out var code)) {
-                Console.WriteLine($"Unknown opcode: {opcodeStr} '");
-                throw new InvalidOperationException($"Unknown opcode: {opcodeStr}");
-            }
-            return code;
-        }
+        //// Cached
+        public static OPCODE _opcode = new();
+        public static ARG _dst = new();
+        public static ARG _src = new();
+        //
+
+
+
+        public static DerefferedLabel drlbl = new();
         public string cLabel = "";
         public static byte[] Parse(string line) {
             byte bits = BITS;
@@ -541,7 +487,11 @@ namespace BASM.Classes.Managers {
             var opcodeStr = words[0].ToLower();
             if (opcodeStr.Length == 0) return new byte[0];
 
-
+            drlbl.line = line;
+            drlbl.IP = IP;
+            drlbl.ORG = ORG;
+            byte[] bytes = [];
+        start:
             char db = '\0';
             if (opcodeStr == "label" ||
                 words[2].StartsWith("db") ||
@@ -551,7 +501,7 @@ namespace BASM.Classes.Managers {
                 var label = words[1];
 
                 long li = ORG + IP;
-                Debugger.info("Saving LABEL {0} with 0x{1}", label, li.ToString("X"));
+                Debugger.Info("Saving LABEL {0} with 0x{1}", label, li.ToString("X"));
 
                 LabelHandler.AddLabel(label, li);
                 if (words[2] == "{") LabelHandler.PushLabel();
@@ -565,24 +515,24 @@ namespace BASM.Classes.Managers {
 
             } else if (opcodeStr == "org") {
                 var org = MemoryHandler.ParseIMM(words[2]);
-                Debugger.info("Changing org to {0}", org.imme.ToString("X"));
+                Debugger.Info("Changing org to {0}", org.imme.ToString("X"));
                 ORG = org.imme;
                 return new byte[0];
             } else if (opcodeStr == "bits") {
                 var org = MemoryHandler.ParseIMM(words[2]);
-                Debugger.info("Changing bits to {0}", org.imme.ToString("X"));
+                Debugger.Info("Changing bits to {0}", org.imme.ToString("X"));
                 BITS = (byte)org.imme;
                 return new byte[0];
             } else if (opcodeStr == "align") {
                 var org = MemoryHandler.ParseIMM(words[2]);
-                Debugger.info("Aligning IP to {0}", org.imme.ToString("X"));
+                Debugger.Info("Aligning IP to {0}", org.imme.ToString("X"));
                 var align = (byte)org.imme;
                 var ip = (IP + align - 1) & ~(align - 1);
-                var relIP = ip - IP;
-                IP = ip;
-                var bytes2 = new byte[relIP];
-                for (int i = 0; i < relIP; i++) bytes2[i] = 0x90;
-                return bytes2;
+                var relIP = ip - IP; 
+                bytes = new byte[relIP];
+                for (int i = 0; i < relIP; i++) bytes[i] = 0x90;
+                if(LabelHandler.parseStage == 1)drlbl.state |= 1;
+                goto done;
             } else if (
                 opcodeStr.StartsWith("db") ||
                 opcodeStr.StartsWith("dw") ||
@@ -590,25 +540,30 @@ namespace BASM.Classes.Managers {
                 opcodeStr.StartsWith("dq")) {
                 db = opcodeStr[1];
                 goto AddDB;
+            } else if (OpCodeHandler.IsRES_KW(opcodeStr)) {
+                if (!MemoryHandler.TryParse(words[2], out var _imm)) return [];
+
+                IP += _imm;
+                return new byte[_imm];
             }
 
-            if (!opcodes.TryGetValue(opcodeStr, out var code)) {
+            if (!OpCodeHandler.TryGet(opcodeStr, out var code)) {
                 Console.WriteLine($"Unknown opcode: {opcodeStr} '{words[1]}' '{words[2]}'");
                 throw new InvalidOperationException($"Unknown opcode: {opcodeStr}");
             }
 
-
-            var bytes = Parse(code, words);
-
-            IP += bytes.Length;
-
-            return bytes;
-
+            bytes = Parse(_opcode = code, words);
+            goto done;
         AddDB:
-            var bytes1 = DB_Handler.parseDB(db, line, IP);
-            IP += bytes1.Length;
-            return bytes1;
+            bytes = DB_Handler.parseDB(db, line, IP);
+        done: 
+            drlbl.Size = (byte)bytes.Length;
+            IP += drlbl.Size; 
+            if ((drlbl.state & 1) > 0) LabelHandler.AddDereferredLabel(drlbl);
+            drlbl = new();
+            return bytes;
         }
 
+        internal static void Load() => OpCodeHandler.Load(opcodeFile);
     }
 }

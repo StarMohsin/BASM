@@ -58,6 +58,9 @@ namespace BASM.Classes.DS {
     public class LABEL : IMM {
         public new const int Type = 4;
         public LABEL() => type = Type;
+        //relIP = TIP - (drlbl.IP + 2 + w);
+
+        public static long relIP(long CIP, long TIP,byte size = 2) => TIP - (CIP + size);
     }
 
     public class OPCODE {
@@ -89,19 +92,36 @@ namespace BASM.Classes.DS {
         public const long ADD_ID    = PUSH_ID      +1;
         public const long XCHG_ID   = ADD_ID       +1;
         public const long MOV_ID    = XCHG_ID      +1;
-#pragma warning restore format
+    #pragma warning restore format
     }
 
     public class ParseError : Exception {
 
     }
-    public class DerefferedLabel {
-        public byte opcode = 0;
+    public class DerefferedLabel { 
+        public bool Rel = false; 
         public long ORG = 0;
         public long IP = 0;
-        public int Off = 0;
-        public int size = 0;
-        public int instSize= 0;
-        public string label = "";
+        public byte Size = 0;
+        public string line = "";
+        public byte state = 0;
+        public Queue<string> labels = new();
+
+        public byte CalSize(long TIP) {
+            var relIp = LABEL.relIP(IP, TIP);
+            var s = Size;
+            bool of = (relIp < -128 || relIp > 127);
+            if (s == 2 && of) {
+
+                s = 3;
+                relIp = LABEL.relIP(IP, TIP, s);
+            }else if (s == 3 && !of) {
+
+                s = 2;
+                relIp = LABEL.relIP(IP, TIP, s);
+            }
+
+            return s;
+        }
     }
 }
