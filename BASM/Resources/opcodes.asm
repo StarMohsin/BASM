@@ -1,8 +1,10 @@
 ;	Mayo ASM opcode data base 
 ;	FIELDS DEFINITION
+; 	GID 	= Group ID, this tells the assembler what group inst belongs, or what type of inst it is
+;		GID 0 	= 0 is Default GID, if GID == 0 the opcode selection depends on FLAGS
 ;	INST 	= opcode string
 ;	TYPEID 	= unique hex id for specificying inst. groups
-;	FLAGS 	= special flags for that tells how to read opcode
+;	FLAGS 	= special flags for that tells how to read opcode, though legacy but still in use
 ;		FLAGS LOW 		Desc
 ;		0x0				Zero operand INST
 ;		0x1				One operand INST
