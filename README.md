@@ -41,5 +41,11 @@ mov ax, es:[bx] +0x100 ; or this
 ```
 because this assemblers considers anything inside '[' ']' a memory access operation, It just to keep it simple.
 
+### How it works
+The machine code generated is almost similar to nasm, the difference is, it compiles code in 2 passes only, in 1st pass, it write value '0' for every label, in 2nd pass it overwrites those values with correct values, but unlike nasm it doesn't resize that instruction. Suppose the assembler left 2 bytes space for a LABEL value, but in 2nd pass that LABEL's value turned out to be 1 byte long, at that point , nasm reassigns all the labels with new value, but my assembler doesn't do that, that is indeed in devlopment
+
+### Future updates
+Introducing resizeable LABELs' values in 2nd pass
+
 This assembler is focused on creating Flat Bin files
 I'm also thinking of add include a file feature like #include<File.asm> like c++, but with file inlined with currrent code
