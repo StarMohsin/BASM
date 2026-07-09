@@ -227,7 +227,7 @@ namespace BASM.Classes.Managers {
                             } else {
                                 if (Reg.keyw == 0) {
                                     Reg.imme -= (drlbl.IP + 2);
-                                    if (MemoryHandler.getSize(Reg.imme) > 1) {
+                                    if (LABEL.relIP_Size(Reg.imme) > 1) {
                                         w = 1;
                                         Reg.imme -= w;
                                         opcode = code.codes[3];
@@ -264,13 +264,13 @@ namespace BASM.Classes.Managers {
                     w = 0;
                     if (Reg.keyw == 0) {
                         var relIp = LABEL.relIP(drlbl.IP, Reg.imme, 2);
-                        if (MemoryHandler.getSize(relIp) > 1) {
-                             relIp = LABEL.relIP(drlbl.IP, Reg.imme-1, 2);
+                        if (LABEL.relIP_Size(relIp) > 1) {
+                             relIp = LABEL.relIP(drlbl.IP, Reg.imme, 5);
                             var bytes = new List<byte>() { 
                                 (byte)(code.codes[1]+1),
                                 3,
                                 (byte)OpCodeHandler.parse("jmp").codes[3] };
-                            bytes.AddRange(NumberSystem.ToByteArray(relIp));
+                            bytes.AddRange(NumberSystem.ToByteArray(relIp,2));
                             return bytes.ToArray();
                         }
                         Reg.imme = relIp;

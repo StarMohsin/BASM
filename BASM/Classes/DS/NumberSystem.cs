@@ -82,6 +82,16 @@ namespace BASM.Classes.DS {
             }
             return Queue.ToArray();
         }
+        public static byte[] ToByteArray(ulong n,int s) {
+            var buf = new byte[s];
+            int i = 0;
+            while (n > 0 && i<s) {
+                buf[i++] = ((byte)(n & 0xFF));
+                n >>= 8;
+            }
+            return buf;
+        }
         public static byte[] ToByteArray(long n) => ToByteArray((ulong)n);
+        public static byte[] ToByteArray(long n, int s) => ToByteArray((ulong)n,s);
     }
 }

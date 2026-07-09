@@ -151,6 +151,7 @@ namespace BASM.Classes.Handlers {
                         dst.Write(buf, 0, bufLen);
                         dst.Position = dsPos;
                         _diffK = 0;
+                        _instCache.Clear();
                     }
                 }
 

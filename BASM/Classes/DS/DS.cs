@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Drawing;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
@@ -61,6 +62,13 @@ namespace BASM.Classes.DS {
         //relIP = TIP - (drlbl.IP + 2 + w);
 
         public static long relIP(long CIP, long TIP,byte size = 2) => TIP - (CIP + size);
+        public static long relIP_Size(long relIp,int s = 1) { 
+            bool of = (relIp < -128 || relIp > 127);
+            if (s == 1 &&  of) return 2;
+            if (s == 2 && !of) return 1;
+            return s;
+        }
+
     }
 
     public class OPCODE {
