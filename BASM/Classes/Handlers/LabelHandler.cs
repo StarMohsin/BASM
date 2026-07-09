@@ -219,6 +219,19 @@ namespace BASM.Classes.Handlers {
 
                 int s = 0; 
                 foreach (var _drlbl_i in drlbl.labels) {
+                    if(_drlbl_i == "ALIGN") {
+                        //s = drlbl.Size - drlbl.CalSize(labels[_drlbl_i].IP);
+                        long IP = drlbl.IP - LabelOff;
+
+                        OpCodeManager.IP = IP;
+                        var inst = OpCodeManager.Parse(drlbl.line);
+
+                        s += drlbl.Size - inst.Length;
+                        Debugger.Log($"Size diff {s} for {_drlbl_i}");
+
+                        break;
+
+                    }
                     if (!Done.TryGetValue(_drlbl_i,out _)) {
                         //s = drlbl.Size - drlbl.CalSize(labels[_drlbl_i].IP);
                         long IP =drlbl.IP - s; 

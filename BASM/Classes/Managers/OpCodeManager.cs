@@ -531,7 +531,10 @@ namespace BASM.Classes.Managers {
                 var relIP = ip - IP; 
                 bytes = new byte[relIP];
                 for (int i = 0; i < relIP; i++) bytes[i] = 0x90;
-                if(LabelHandler.parseStage == 1)drlbl.state |= 1;
+                if (LabelHandler.parseStage == 1) {
+                    drlbl.state |= 1;
+                    drlbl.labels.Enqueue($"ALIGN");
+                }
                 goto done;
             } else if (
                 opcodeStr.StartsWith("db") ||
