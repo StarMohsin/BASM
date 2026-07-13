@@ -10,14 +10,23 @@ using System.Text;
 using System.Threading.Tasks;
 
 namespace BASM.Classes.Handlers {
-    public class LabelHandler { 
+    public class LabelHandler {
         class LABEL {
             public string label;
-            public long IP = 0; 
+            public long IP {
+                get {
+                    if (TI >= InstructionManager.Tokens.Length) return _IP;
+                    if (0 == InstructionManager.Tokens[TI].Regs.Length) return _IP;
+                    return InstructionManager.Tokens[TI].Regs[0];
+                }
+            }
+            public int TI = 0;
+            long _IP = 0;
 
-            public LABEL(string label, long iP) {
+            public LABEL(string label, long iP, int tI = -1) {
                 this.label = label;
-                IP = iP; 
+                _IP = iP;
+                TI = tI;
             }
         }
 
@@ -27,11 +36,11 @@ namespace BASM.Classes.Handlers {
         static List<string> labelSeq = new();
         //static Queue<DerefferedLabel> derefferedLabels = new Queue<DerefferedLabel>();
         static Stack<string> labelStack = new Stack<string>();
-        static string cLabel = "", _clabel = "";
+        public static string cLabel = "", _clabel = "";
 
         static byte NASM => OpCodeManager.NASM;
         public static byte parseStage = 1;
-        public static void AddLabel(string label, long IP) {
+        public static void AddLabel(string label, long IP, int TI = -1) {
             if (label.Length == 0) return;
             if (labels.TryGetValue(label, out _)) return;
 
@@ -44,7 +53,7 @@ namespace BASM.Classes.Handlers {
             }
 
             Debugger.Info($"Saved '{label}' with {IP}");
-            LABEL _lbl = new(label, IP);
+            LABEL _lbl = new(label, IP, TI);
               
             labels.Add(label, _lbl);
             labelSeq.Add(label);
@@ -102,7 +111,7 @@ namespace BASM.Classes.Handlers {
                 imm.size = MemoryHandler.getSize(imme);
             }
 
-            Debugger.Info($"found {src}:{imm.imme} = {imme} - {LabelOff}");
+            Debugger.Info($"found {src}:0x{imm.imme:X} = {imme} - {LabelOff}");
             return true; 
         }
         public static DS.LABEL Parse(string src, byte keyw = 0) {
@@ -111,8 +120,11 @@ namespace BASM.Classes.Handlers {
             return imm;
         }
 
-        static long LabelOff = 0; // current label offset
-        // 2nd pass
+        static long LabelOff = 0; // current label offset 
+
+
+        // leaving it here, As it has some core logic for the assembler,
+        // but it's not used in the current implementation.  
         public static void ParseAllDereferredLabels(FileStream dst) {
             Debugger.Log();
             Debugger.Log("2nd Parse for labels");

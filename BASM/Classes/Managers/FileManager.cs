@@ -7,36 +7,14 @@ using static System.Runtime.InteropServices.JavaScript.JSType;
 
 namespace BASM.Classes.Managers {
     public class FileManager {
-
-        static FileInfo sfile,ofile;
-        public static FileStream src, dst;
-
-        public static void Open(string source,string dest) {
-            sfile = new FileInfo(source);
-            ofile = new FileInfo(dest);
-
-            src = sfile.OpenRead();
-            if (!ofile.Exists) ofile.Create();
-            dst = ofile.Open(FileMode.Truncate,FileAccess.ReadWrite);
-        }
-        public static void Close() {
-            if (src != null) src.Close();
-            if (dst != null) {
-                dst.Flush();
-                dst.Close();
-            }
-        }
-        public static bool EOF() {
-            if (sfile == null) throw new InvalidOperationException("Source file not opened.");
-            return src.ReadByte() == -1;
-        }
-        public static string ReadLine(out bool eof) {
-            if (sfile == null) throw new InvalidOperationException("Source file not opened.");
+          
+        public static string ReadLine(FileStream fs, out bool eof) {
+            if (fs == null) throw new ArgumentNullException("fs", "File stream cannot be null.");
             var sb = new StringBuilder();
 
-            eof = false; 
+            eof = false;
             while (true) {
-                int b = src.ReadByte();
+                int b = fs.ReadByte();
                 if (eof = b == -1) return sb.ToString(); // EOF
                 char c = (char)b;
                 if (c == '\t') c = ' ';
@@ -45,10 +23,10 @@ namespace BASM.Classes.Managers {
                 sb.Append(c);
             }
             return sb.ToString();
-        }
-        public static void Write(byte[] bytes) {
-            if (ofile == null) throw new InvalidOperationException("Output file not opened."); 
-            dst.Write(bytes, 0, bytes.Length);
+        } 
+        public static void Write(FileStream fs,byte[] bytes) {
+            if (fs == null) throw new ArgumentNullException("fs", "File stream cannot be null.");
+            fs.Write(bytes, 0, bytes.Length);
         }
     }
 }

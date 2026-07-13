@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Drawing;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
@@ -74,15 +75,15 @@ namespace BASM.Classes.DS {
             }
         }
 
-        public static byte[] ToByteArray(ulong n) {
-            var Queue = new Queue<byte>();
-            while (n > 0) {
-                Queue.Enqueue((byte)(n & 0xFF));
-                n >>= 8;
-            }
-            return Queue.ToArray();
+        public static byte getSize(ulong size) {
+            if (size <= 0xFF) return 1;
+            if (size <= 0xFFFF) return 2;
+            if (size <= 0xFFFFFFFF) return 4;
+            return 8;
         }
-        public static byte[] ToByteArray(ulong n,int s) {
+        public static byte[] ToByteArray_LE(ulong n,byte s = 0) {
+            if(s > 8) throw new ArgumentOutOfRangeException("s", "Size must be less than 9 bytes.");
+            if (s == 0) s = getSize(n);
             var buf = new byte[s];
             int i = 0;
             while (n > 0 && i<s) {
@@ -91,7 +92,20 @@ namespace BASM.Classes.DS {
             }
             return buf;
         }
-        public static byte[] ToByteArray(long n) => ToByteArray((ulong)n);
-        public static byte[] ToByteArray(long n, int s) => ToByteArray((ulong)n,s);
+        public static byte[] ToByteArray_BE(ulong n, byte s = 0) {
+            if (s > 8) throw new ArgumentOutOfRangeException("s", "Size must be less than 9 bytes.");
+            if (s == 0) s = getSize(n);
+            var buf = new byte[s];
+            int i = s-1;
+            while (n > 0 && i > -1) {
+                buf[i--] = ((byte)(n & 0xFF));
+                n >>= 8;
+            }
+            return buf;
+        }
+        public static byte[] ToByteArray_LE(long n) => ToByteArray_LE((ulong)n);
+        public static byte[] ToByteArray_LE(long n, byte s) => ToByteArray_LE((ulong)n,s);
+        public static byte[] ToByteArray_BE(long n) => ToByteArray_BE((ulong)n);
+        public static byte[] ToByteArray_BE(long n, byte s) => ToByteArray_BE((ulong)n, s);
     }
 }

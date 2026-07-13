@@ -27,7 +27,7 @@ namespace BASM.Classes.Handlers {
                     return true;
                 }
                 k++;
-            }
+            } 
             return false;
         }
 
@@ -123,7 +123,7 @@ namespace BASM.Classes.Handlers {
             return (byte)_size;
         }
         public static byte getSize(long _size) => getSize((ulong)Math.Abs(_size));
-        private byte getRM(int reg) {
+        private static byte getRM(int reg) {
             return reg switch {
                 6 => 0, // si
                 7 => 1, // di
@@ -249,7 +249,7 @@ namespace BASM.Classes.Handlers {
             }
             return rm;
         } 
-        public SIB Parse(string mem, byte keyw = 0) {
+        public static SIB Parse(string mem, byte keyw = 0) {
             var rm = new SIB();
             rm.keyw = keyw;
             if (!mem.StartsWith('[') || !mem.EndsWith(']')) return rm;
@@ -353,6 +353,12 @@ namespace BASM.Classes.Handlers {
                     rm.imme = 0;
                     rm.size = 1;
                 }
+            }
+            if(keyw != 0) {
+                if(keyw == 5) rm.size = 1;
+                else if(keyw == 6) rm.size = 2;
+                else if(keyw == 7) rm.size = 4;
+                else if(keyw == 8) rm.size = 8;
             }
             return rm;
         }

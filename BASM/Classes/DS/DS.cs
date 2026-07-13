@@ -87,9 +87,13 @@ namespace BASM.Classes.DS {
         public bool PREF => (flags & 0x10) == 1 && ZOP;
         // for inst with one-operand form, no dw   
         public bool OOP => (flags & 0x1) != 0 && (flags & 0x2) == 0;
+
+        public bool FLAG_NZ(byte mask) => (flags & mask) != 0;
+        public bool FLAG_Z(byte mask) => (flags & mask) == 0;
     #pragma warning disable format
         public const long DEF_ID    = 0;
-        public const long JC_ID     = DEF_ID       +1;
+        public const long NOP_ID    = DEF_ID       +1;
+        public const long JC_ID     = NOP_ID       +1;
         public const long INT_ID    = JC_ID        +1;
         public const long IO_ID     = INT_ID       +1;
         public const long ROL_ID    = IO_ID        +1;
@@ -101,6 +105,25 @@ namespace BASM.Classes.DS {
         public const long XCHG_ID   = ADD_ID       +1;
         public const long MOV_ID    = XCHG_ID      +1;
     #pragma warning restore format
+
+        public static void LogGIDS() {
+            Debugger.Log();
+            Debugger.Log("OPCODE Global IDs");
+            Debugger.Log();
+            Debugger.Log($"DEF_ID  : {DEF_ID}");
+            Debugger.Log($"NOP_ID  : {NOP_ID}");
+            Debugger.Log($"JC_ID   : {JC_ID}");
+            Debugger.Log($"INT_ID  : {INT_ID}");
+            Debugger.Log($"IO_ID   : {IO_ID}");
+            Debugger.Log($"ROL_ID  : {ROL_ID}");
+            Debugger.Log($"INC_ID  : {INC_ID}");
+            Debugger.Log($"JMP_ID  : {JMP_ID}");
+            Debugger.Log($"CALL_ID : {CALL_ID}");
+            Debugger.Log($"PUSH_ID : {PUSH_ID}");
+            Debugger.Log($"ADD_ID  : {ADD_ID}");
+            Debugger.Log($"XCHG_ID : {XCHG_ID}");
+            Debugger.Log($"MOV_ID  : {MOV_ID}");
+        }
     }
 
     public class ParseError : Exception {
